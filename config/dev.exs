@@ -6,6 +6,7 @@ config :text_warfare, TextWarfare.Repo,
   password: "postgres",
   database: "text_warfare_dev",
   hostname: "localhost",
+  port: System.get_env("DB_PORT", "6543") |> String.to_integer(),
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 

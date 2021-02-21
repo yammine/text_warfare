@@ -10,6 +10,7 @@ config :text_warfare, TextWarfare.Repo,
   password: "postgres",
   database: "text_warfare_test#{System.get_env("MIX_TEST_PARTITION")}",
   hostname: "localhost",
+  port: System.get_env("DB_PORT", "6543") |> String.to_integer(),
   pool: Ecto.Adapters.SQL.Sandbox
 
 # We don't run a server during test. If one is required,
