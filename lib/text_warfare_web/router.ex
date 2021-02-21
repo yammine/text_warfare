@@ -65,6 +65,15 @@ defmodule TextWarfareWeb.Router do
     get "/users/settings", UserSettingsController, :edit
     put "/users/settings", UserSettingsController, :update
     get "/users/settings/confirm_email/:token", UserSettingsController, :confirm_email
+
+    live "/bases", BaseLive.Index, :index
+    live "/bases/new", BaseLive.Index, :new
+    live "/bases/:id/edit", BaseLive.Index, :edit
+
+    live "/bases/:id", BaseLive.Show, :show
+    live "/bases/:id/show/edit", BaseLive.Show, :edit
+
+    live "/hq", BaseLive.HQ
   end
 
   scope "/", TextWarfareWeb do

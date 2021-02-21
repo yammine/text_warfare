@@ -1,0 +1,38 @@
+<h1>Listing Bases</h1>
+
+<%= if @live_action in [:new, :edit] do %>
+  <%= live_modal @socket, TextWarfareWeb.BaseLive.FormComponent,
+    id: @base.id || :new,
+    title: @page_title,
+    action: @live_action,
+    base: @base,
+    current_user: @current_user,
+    return_to: Routes.base_index_path(@socket, :index) %>
+<% end %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Land</th>
+      <th>Money</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="bases">
+    <%= for base <- @bases do %>
+      <tr id="base-<%= base.id %>">
+        <td><%= base.land %> ft²</td>
+        <td>$ <%= base.money %></td>
+
+        <td>
+          <span><%= live_redirect "Show", to: Routes.base_show_path(@socket, :show, base) %></span>
+          <span><%= live_patch "Edit", to: Routes.base_index_path(@socket, :edit, base) %></span>
+          <span><%= link "Delete", to: "#", phx_click: "delete", phx_value_id: base.id, data: [confirm: "Are you sure?"] %></span>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<span><%= live_patch "New Base", to: Routes.base_index_path(@socket, :new) %></span>

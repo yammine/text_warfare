@@ -1,0 +1,22 @@
+<h1>Show Battle</h1>
+
+<%= if @live_action in [:edit] do %>
+  <%= live_modal @socket, TextWarfareWeb.BattleLive.FormComponent,
+    id: @battle.id,
+    title: @page_title,
+    action: @live_action,
+    battle: @battle,
+    return_to: Routes.battle_show_path(@socket, :show, @battle) %>
+<% end %>
+
+<ul>
+
+  <li>
+    <strong>Battle results:</strong>
+    <%= @battle.battle_results %>
+  </li>
+
+</ul>
+
+<span><%= live_patch "Edit", to: Routes.battle_show_path(@socket, :edit, @battle), class: "button" %></span>
+<span><%= live_redirect "Back", to: Routes.battle_index_path(@socket, :index) %></span>

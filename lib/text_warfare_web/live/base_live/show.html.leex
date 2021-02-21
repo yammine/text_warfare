@@ -1,0 +1,27 @@
+<h1>Show Base</h1>
+
+<%= if @live_action in [:edit] do %>
+  <%= live_modal @socket, TextWarfareWeb.BaseLive.FormComponent,
+    id: @base.id,
+    title: @page_title,
+    action: @live_action,
+    base: @base,
+    return_to: Routes.base_show_path(@socket, :show, @base) %>
+<% end %>
+
+<ul>
+
+  <li>
+    <strong>Land:</strong>
+    <%= @base.land %>
+  </li>
+
+  <li>
+    <strong>Money:</strong>
+    <%= @base.money %>
+  </li>
+
+</ul>
+
+<span><%= live_patch "Edit", to: Routes.base_show_path(@socket, :edit, @base), class: "button" %></span>
+<span><%= live_redirect "Back", to: Routes.base_index_path(@socket, :index) %></span>

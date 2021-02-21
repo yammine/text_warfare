@@ -1,0 +1,35 @@
+<h1>Listing Battles</h1>
+
+<%= if @live_action in [:new, :edit] do %>
+  <%= live_modal @socket, TextWarfareWeb.BattleLive.FormComponent,
+    id: @battle.id || :new,
+    title: @page_title,
+    action: @live_action,
+    battle: @battle,
+    return_to: Routes.battle_index_path(@socket, :index) %>
+<% end %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Battle results</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="battles">
+    <%= for battle <- @battles do %>
+      <tr id="battle-<%= battle.id %>">
+        <td><%= battle.battle_results %></td>
+
+        <td>
+          <span><%= live_redirect "Show", to: Routes.battle_show_path(@socket, :show, battle) %></span>
+          <span><%= live_patch "Edit", to: Routes.battle_index_path(@socket, :edit, battle) %></span>
+          <span><%= link "Delete", to: "#", phx_click: "delete", phx_value_id: battle.id, data: [confirm: "Are you sure?"] %></span>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<span><%= live_patch "New Battle", to: Routes.battle_index_path(@socket, :new) %></span>

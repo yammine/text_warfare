@@ -1,0 +1,18 @@
+<h2><%= @title %></h2>
+
+<%= f = form_for @changeset, "#",
+  id: "base-form",
+  phx_target: @myself,
+  phx_change: "validate",
+  phx_submit: "save" %>
+
+  <%= label f, :land %>
+  <%= number_input f, :land %>
+  <%= error_tag f, :land %>
+
+  <%= label f, :money %>
+  <%= number_input f, :money %>
+  <%= error_tag f, :money %>
+
+  <%= submit "Save", phx_disable_with: "Saving..." %>
+</form>
