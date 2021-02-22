@@ -65,7 +65,7 @@ defmodule TextWarfare.Domain.BaseTest do
     test "error if invalid building_type" do
       {:error, err} = Base.build(%Base{}, :nursery, 5)
 
-      assert err =~ "invalid building_type"
+      assert err =~ "expected type to be in"
     end
 
     test "error if not enough land" do

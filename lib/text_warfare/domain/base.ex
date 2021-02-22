@@ -53,39 +53,68 @@ defmodule TextWarfare.Domain.Base do
     {:error, "expected a positive integer for spend, got: #{inspect(spend)}"}
   end
 
-  @spec build(t, Atom.t(), pos_integer()) :: {:ok, t} | {:error, String.t()}
-  def build(base = %Base{}, building_type, amount) do
-    with {:building_type, true} <- {:building_type, building_type in @building_types},
-         {:amount, true} <- {:amount, amount > 0},
-         {:land, true} <- {:land, enough_land_to_build?(base, amount)},
-         {:cost, true} <- {:cost, enough_money_to_build?(base, building_type, amount)},
-         {:ok, base} <- spend_turns(base, ceil(amount * @turn_cost_per_building)) do
-      {:ok, base}
+  @spec spend_money(t, pos_integer()) :: {:ok, t} | {:error, String.t()}
+  def spend_money(base = %Base{money: money}, spend) when spend > 0 do
+    new_money = money - spend
+
+    if new_money >= 0 do
+      {:ok, %Base{base | money: new_money}}
     else
-      {:building_type, false} ->
-        {:error, "invalid building_type, got: #{inspect(building_type)}"}
-
-      {:amount, false} ->
-        {:error, "expected a positive integer for amount, got: #{inspect(amount)}"}
-
-      {:land, false} ->
-        {:error, "not enough land"}
-
-      {:cost, false} ->
-        {:error, "not enough money"}
-
-      {:error, _msg} = err ->
-        err
+      {:error, "not enough money"}
     end
   end
 
-  defp enough_land_to_build?(base, amount) do
-    base.land_area - used_land(base) >= amount * @area_per_building
+  def spend_money(_base, spend) do
+    {:error, "expected a positive integer for spend, got: #{inspect(spend)}"}
   end
 
+  @spec consume_land(t, pos_integer()) :: {:ok, t} | {:error, String.t()}
+  def consume_land(base = %Base{}, consumption) when consumption > 0 do
+    if enough_land_to_build?(base, consumption) do
+      {:ok, base}
+    else
+      {:error, "not enough land"}
+    end
+  end
+
+  def consume_land(_base, consumption) do
+    {:error, "expected a positive integer for consumption, got: #{inspect(consumption)}"}
+  end
+
+  @spec build(t, Atom.t(), pos_integer()) :: {:ok, t} | {:error, String.t()}
+  def build(base = %Base{}, type, amount) when type in @building_types and amount > 0 do
+    with {:ok, base} <- consume_land(base, land_cost(amount)),
+         {:ok, base} <- spend_money(base, building_money_cost(amount)),
+         {:ok, base} <- spend_turns(base, building_turn_cost(amount)) do
+      {:ok, add_buildings(base, type, amount)}
+    end
+  end
+
+  def build(_base, type, _amount) when type not in @building_types,
+    do: {:error, "expected type to be in #{inspect(@building_types)}, got: #{inspect(type)}"}
+
+  def build(_base, _type, amount) when amount <= 0,
+    do: {:error, "expected a positive integer for amount, got: #{inspect(amount)}"}
+
+  defp add_buildings(base, type, amount) do
+    {_previous, buildings} =
+      base.buildings
+      |> Map.get_and_update(type, fn c ->
+        {c, c + amount}
+      end)
+
+    %Base{base | buildings: buildings}
+  end
+
+  defp land_cost(n), do: n * @area_per_building
+
   # Different building types will have different costs later, use fixed one for now
-  defp enough_money_to_build?(base, _type, amount) do
-    base.money >= amount * @monetary_cost_per_building
+  defp building_money_cost(n), do: n * @monetary_cost_per_building
+
+  defp building_turn_cost(n), do: ceil(n * @turn_cost_per_building)
+
+  defp enough_land_to_build?(base, required_land) do
+    base.land_area - used_land(base) >= required_land
   end
 
   @spec used_land(t) :: non_neg_integer()
