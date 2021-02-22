@@ -5,10 +5,27 @@ defmodule TextWarfare.Domain.Base do
 
   @type t :: %__MODULE__{}
 
-  @building_types ~w(power_plant barracks armory shipyard oil_derrick)a
+  @building_types ~w(power_plant barracks armory shipyard airfield oil_derrick)a
   @area_per_building 20
   @monetary_cost_per_building 1_000
   @turn_cost_per_building 1 / 20
+
+  @army_unit_types ~w(infantry armor navy aircraft)a
+
+  def new do
+    %Base{
+      buildings: building_map(),
+      army: army_map()
+    }
+  end
+
+  defp building_map do
+    Map.new(@building_types, &{&1, 0})
+  end
+
+  defp army_map do
+    Map.new(@army_unit_types, &{&1, Map.new()})
+  end
 
   @doc """
   Increases the number of turns a Base can spend.
@@ -19,8 +36,8 @@ defmodule TextWarfare.Domain.Base do
       {:ok, %Base{}}
   """
   @spec add_turns(t, pos_integer()) :: {:ok, t} | {:error, String.t()}
-  def add_turns(base = %Base{turns: n}, turns) when turns > 0 do
-    {:ok, %Base{base | turns: n + turns}}
+  def add_turns(base, turns) when turns > 0 do
+    {:ok, %Base{base | turns: base.turns + turns}}
   end
 
   def add_turns(_base, turns) do
@@ -39,8 +56,8 @@ defmodule TextWarfare.Domain.Base do
       {:error, "not enough turns"}
   """
   @spec spend_turns(t, pos_integer()) :: {:ok, t} | {:error, String.t()}
-  def spend_turns(base = %Base{turns: n}, spend) when spend > 0 do
-    new_turns = n - spend
+  def spend_turns(base, spend) when spend > 0 do
+    new_turns = base.turns - spend
 
     if new_turns >= 0 do
       {:ok, %Base{base | turns: new_turns}}
@@ -54,8 +71,8 @@ defmodule TextWarfare.Domain.Base do
   end
 
   @spec spend_money(t, pos_integer()) :: {:ok, t} | {:error, String.t()}
-  def spend_money(base = %Base{money: money}, spend) when spend > 0 do
-    new_money = money - spend
+  def spend_money(base, spend) when spend > 0 do
+    new_money = base.money - spend
 
     if new_money >= 0 do
       {:ok, %Base{base | money: new_money}}
@@ -69,7 +86,7 @@ defmodule TextWarfare.Domain.Base do
   end
 
   @spec consume_land(t, pos_integer()) :: {:ok, t} | {:error, String.t()}
-  def consume_land(base = %Base{}, consumption) when consumption > 0 do
+  def consume_land(base, consumption) when consumption > 0 do
     if enough_land_to_build?(base, consumption) do
       {:ok, base}
     else
@@ -82,7 +99,7 @@ defmodule TextWarfare.Domain.Base do
   end
 
   @spec build(t, Atom.t(), pos_integer()) :: {:ok, t} | {:error, String.t()}
-  def build(base = %Base{}, type, amount) when type in @building_types and amount > 0 do
+  def build(base, type, amount) when type in @building_types and amount > 0 do
     with {:ok, base} <- consume_land(base, land_cost(amount)),
          {:ok, base} <- spend_money(base, building_money_cost(amount)),
          {:ok, base} <- spend_turns(base, building_turn_cost(amount)) do
