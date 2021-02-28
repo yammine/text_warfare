@@ -28,7 +28,7 @@ defmodule TextWarfare.Domain.ProvinceTest do
   end
 
   describe "add_land/2" do
-    test "increases province's land" do
+    test "increases province's land_area" do
       province = Province.add_land(%Province{}, 1)
 
       assert province.land_area == 1

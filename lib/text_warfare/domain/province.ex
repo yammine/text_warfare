@@ -1,5 +1,11 @@
 defmodule TextWarfare.Domain.Province do
-  defstruct id: nil, turns: 0, land_area: 0, money: 0, buildings: %{}, military: %{}
+  defstruct id: nil,
+            turns: 0,
+            land_area: 0,
+            used_land_area: 0,
+            money: 0,
+            buildings: %{},
+            military: %{}
 
   alias __MODULE__, as: Province
 
@@ -11,20 +17,33 @@ defmodule TextWarfare.Domain.Province do
   @turn_cost_per_building 1 / 20
 
   @military_unit_types ~w(infantry armor navy aircraft)a
+  @infantry_types ~w(general_infantry)a
+  @armor_types ~w(light_tank heavy_tank apc humvee artillery)a
+  @navy_types ~w(destroyer carrier)a
+  @aircraft_types ~w(fighter bomber)a
+
+  @military_map @military_unit_types
+                |> Map.new(&{&1, Map.new()})
+                |> Map.put(:infantry, Map.new(@infantry_types, &{&1, 0}))
+                |> Map.put(:armor, Map.new(@armor_types, &{&1, 0}))
+                |> Map.put(:navy, Map.new(@navy_types, &{&1, 0}))
+                |> Map.put(:aircraft, Map.new(@aircraft_types, &{&1, 0}))
+
+  @military_reverse_map Enum.reduce(@military_map, %{}, fn {unit_type, type_map}, acc ->
+                          Enum.reduce(type_map, acc, fn {key, _}, sub_acc ->
+                            Map.put(sub_acc, key, unit_type)
+                          end)
+                        end)
 
   def new do
     %Province{
       buildings: building_map(),
-      military: military_map()
+      military: @military_map
     }
   end
 
   defp building_map do
     Map.new(@building_types, &{&1, 0})
-  end
-
-  defp military_map do
-    Map.new(@military_unit_types, &{&1, Map.new()})
   end
 
   @doc """
@@ -118,10 +137,20 @@ defmodule TextWarfare.Domain.Province do
     {:error, "expected a positive integer for spend, got: #{inspect(spend)}"}
   end
 
+  @doc """
+  Consumes land_area. Ensures the Province does not build on land it does not have.
+
+  ## Examples
+
+      iex> consume_land(%Province{land_area: 100, used_land_area: 80}, 20)
+      {:ok, %Province{land_area: 100, used_land_area: 100}}
+  """
   @spec consume_land(t, pos_integer()) :: {:ok, t} | {:error, String.t()}
   def consume_land(province, consumption) when consumption > 0 do
-    if enough_land_to_build?(province, consumption) do
-      {:ok, province}
+    available_land = province.land_area - province.used_land_area
+
+    if available_land >= consumption do
+      {:ok, %Province{province | used_land_area: province.used_land_area + consumption}}
     else
       {:error, "not enough land"}
     end
@@ -130,6 +159,8 @@ defmodule TextWarfare.Domain.Province do
   def consume_land(_province, consumption) do
     {:error, "expected a positive integer for consumption, got: #{inspect(consumption)}"}
   end
+
+  #### Buildings
 
   @spec build(t, Atom.t(), pos_integer()) :: {:ok, t} | {:error, String.t()}
   def build(province, type, amount) when type in @building_types and amount > 0 do
@@ -156,22 +187,23 @@ defmodule TextWarfare.Domain.Province do
     %Province{province | buildings: buildings}
   end
 
+  # Costs will become dynamic at some point, hard code to these values for now for simplicity
   defp land_cost(n), do: n * @area_per_building
-
-  # Different building types will have different costs later, use fixed one for now
   defp building_money_cost(n), do: n * @monetary_cost_per_building
-
   defp building_turn_cost(n), do: ceil(n * @turn_cost_per_building)
 
-  defp enough_land_to_build?(province, required_land) do
-    province.land_area - used_land(province) >= required_land
+  #### Military
+  @spec train(t, Atom.t(), pos_integer()) :: {:ok, t}
+  def train(province, unit, quantity) do
+    military_type = military_type_for_unit(unit)
+
+    {_previous, military} =
+      get_and_update_in(province.military, [military_type, unit], &{&1, &1 + quantity})
+
+    {:ok, %Province{province | military: military}}
   end
 
-  @spec used_land(t) :: non_neg_integer()
-  def used_land(%Province{buildings: buildings}) do
-    buildings
-    |> Map.values()
-    |> Enum.sum()
-    |> Kernel.*(@area_per_building)
+  def military_type_for_unit(unit) do
+    Map.get(@military_reverse_map, unit)
   end
 end
